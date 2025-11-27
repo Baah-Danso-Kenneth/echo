@@ -61,6 +61,7 @@ class PostBase(BaseModel):
     """Base post schema"""
     id: int
     content: str
+    image_url: Optional[str] = None
     created_at: datetime
     is_retweet: bool = False
 
