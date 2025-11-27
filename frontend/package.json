@@ -9,13 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.0",
     "@stacks/connect": "^7.10.2",
     "@stacks/network": "^7.2.0",
     "@stacks/transactions": "^7.2.0",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.544.0",
     "next": "15.5.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-redux": "^9.2.0",
     "sonner": "^2.0.7"
   },
   "devDependencies": {
