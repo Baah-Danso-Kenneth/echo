@@ -10,7 +10,8 @@ from app.schemas.schemas import (
     PostCreate, PostResponse, PostDetail, PostListResponse
 )
 from app.api.dependencies import get_current_user, get_current_user_optional, PaginationParams
-from app.utils.imagekit import upload_image_to_imagekit
+from app.utils.imageKit import upload_image_to_imagekit
+
 
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
