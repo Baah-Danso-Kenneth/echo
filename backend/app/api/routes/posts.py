@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+import shutil
+import os
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from sqlalchemy.orm import selectinload
@@ -16,18 +19,44 @@ router = APIRouter(prefix="/posts", tags=["Posts"])
 
 @router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
-        post_data: PostCreate,
+        content: str = Form(...),
+        image: Optional[UploadFile] = File(None),
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db)
 ):
     """
-    Create a new post.
+    Create a new post with optional image.
 
     Requires authentication.
     - **content**: Post content (1-280 characters)
+    - **image**: Optional image file
     """
+    image_url = None
+    if image:
+        # Create unique filename
+        file_extension = os.path.splitext(image.filename)[1]
+        filename = f"{uuid.uuid4()}{file_extension}"
+        
+        # Ensure directory exists
+        # Go up 3 levels from app/api/routes/posts.py to root
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        static_dir = os.path.join(base_dir, "static", "images")
+        
+        if not os.path.exists(static_dir):
+            os.makedirs(static_dir)
+            
+        file_path = os.path.join(static_dir, filename)
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+            
+        # Set URL (relative to base URL)
+        image_url = f"/static/images/{filename}"
+
     new_post = Post(
-        content=post_data.content,
+        content=content,
+        image_url=image_url,
         user_id=current_user.id,
         is_retweet=False
     )
@@ -286,6 +315,7 @@ async def _build_post_response(
     return PostResponse(
         id=post.id,
         content=post.content,
+        image_url=post.image_url,
         created_at=post.created_at,
         is_retweet=post.is_retweet,
         author=post.author,
