@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from sqlalchemy.orm import selectinload
 from typing import Optional
-
 from app.core.database import get_db
 from app.models.models import Post, User, Like, Retweet
 from app.schemas.schemas import (
@@ -11,10 +10,11 @@ from app.schemas.schemas import (
 )
 from app.api.dependencies import get_current_user, get_current_user_optional, PaginationParams
 from app.utils.imageKit import upload_image_to_imagekit
-
+import logging
 
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
