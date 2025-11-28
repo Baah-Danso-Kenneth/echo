@@ -35,7 +35,6 @@ class Settings(BaseSettings):
 
     # CORS - Adjust for your frontend URL
     CORS_ORIGINS = ["https://echo-orcin-seven.vercel.app", "https://yourdomain.com"]
-
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
