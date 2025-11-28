@@ -27,8 +27,12 @@ async def upload_image_to_imagekit(file_data: bytes, file_name: str) -> str:
         Exception: If upload fails
     """
     try:
+        # Encode bytes to base64 string
+        import base64
+        file_base64 = base64.b64encode(file_data).decode('utf-8')
+
         upload_result = imagekit.upload_file(
-            file=file_data,
+            file=file_base64,
             file_name=file_name,
             options={
                 "folder": "/posts",  # Organize in posts folder
