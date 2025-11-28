@@ -1,6 +1,3 @@
-import shutil
-import os
-import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
@@ -13,6 +10,8 @@ from app.schemas.schemas import (
     PostCreate, PostResponse, PostDetail, PostListResponse
 )
 from app.api.dependencies import get_current_user, get_current_user_optional, PaginationParams
+from app.utils.imagekit import upload_image_to_imagekit
+
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -29,34 +28,49 @@ async def create_post(
 
     Requires authentication.
     - **content**: Post content (1-280 characters)
-    - **image**: Optional image file
+    - **image**: Optional image file (uploaded to ImageKit)
     """
     image_url = None
-    if image:
-        # Create unique filename
-        file_extension = os.path.splitext(image.filename)[1]
-        filename = f"{uuid.uuid4()}{file_extension}"
-        
-        # Ensure directory exists
-        # Go up 3 levels from app/api/routes/posts.py to root
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        static_dir = os.path.join(base_dir, "static", "images")
-        
-        if not os.path.exists(static_dir):
-            os.makedirs(static_dir)
-            
-        file_path = os.path.join(static_dir, filename)
-        
-        # Save file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-            
-        # Set URL (relative to base URL)
-        image_url = f"/static/images/{filename}"
 
+    if image:
+        try:
+            # Validate file type
+            allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+            if image.content_type not in allowed_types:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed."
+                )
+
+            # Validate file size (max 5MB)
+            file_data = await image.read()
+            if len(file_data) > 5 * 1024 * 1024:  # 5MB
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File size too large. Maximum size is 5MB."
+                )
+
+            # Upload to ImageKit
+            image_url = await upload_image_to_imagekit(
+                file_data=file_data,
+                file_name=image.filename
+            )
+
+            logger.info(f"Image uploaded for user {current_user.id}: {image_url}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Image upload error: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to upload image. Please try again."
+            )
+
+    # Create post with ImageKit URL (full URL, not relative path)
     new_post = Post(
         content=content,
-        image_url=image_url,
+        image_url=image_url,  # Now stores full ImageKit URL
         user_id=current_user.id,
         is_retweet=False
     )
