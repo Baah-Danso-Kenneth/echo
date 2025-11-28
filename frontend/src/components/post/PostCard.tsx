@@ -39,7 +39,7 @@ const PostCard = ({ post }: PostCardProps) => {
           {post.image_url && (
             <div className="mb-3">
               <img
-                src={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}${post.image_url}`}
+                src={post.image_url.startsWith("http") ? post.image_url : `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}${post.image_url}`}
                 alt="Post content"
                 className="rounded-2xl border border-border w-full max-h-96 object-cover"
                 loading="lazy"

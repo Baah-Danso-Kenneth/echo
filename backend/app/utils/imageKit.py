@@ -12,6 +12,11 @@ imagekit = ImageKit(
 )
 
 
+import tempfile
+import os
+
+from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
+
 async def upload_image_to_imagekit(file_data: bytes, file_name: str) -> str:
     """
     Upload image to ImageKit and return the full URL.
@@ -26,27 +31,35 @@ async def upload_image_to_imagekit(file_data: bytes, file_name: str) -> str:
     Raises:
         Exception: If upload fails
     """
+    temp_file_path = None
     try:
-        # Encode bytes to base64 string
-        import base64
-        file_base64 = base64.b64encode(file_data).decode('utf-8')
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1]) as temp_file:
+            temp_file.write(file_data)
+            temp_file_path = temp_file.name
 
-        upload_result = imagekit.upload_file(
-            file=file_base64,
-            file_name=file_name,
-            options={
-                "folder": "/posts",  # Organize in posts folder
-                "use_unique_file_name": True,  # Prevent naming conflicts
-                "is_private_file": False,  # Make publicly accessible
-            }
-        )
+        # Upload using the file path
+        with open(temp_file_path, "rb") as f:
+            upload_result = imagekit.upload_file(
+                file=f,
+                file_name=file_name,
+                options=UploadFileRequestOptions(
+                    folder="/posts",  # Organize in posts folder
+                    use_unique_file_name=True,  # Prevent naming conflicts
+                    is_private_file=False,  # Make publicly accessible
+                )
+            )
 
         logger.info(f"Image uploaded successfully: {upload_result.url}")
-        return upload_result.url  # Returns full URL like https://ik.imagekit.io/elrtcplmsp/posts/image.png
+        return upload_result.url
 
     except Exception as e:
         logger.error(f"Failed to upload image to ImageKit: {str(e)}")
         raise Exception(f"Image upload failed: {str(e)}")
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
 
 
 def delete_image_from_imagekit(file_id: str) -> bool:
